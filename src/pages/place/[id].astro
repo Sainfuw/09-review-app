@@ -1,0 +1,57 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { actions } from 'astro:actions'
+import { Image } from 'astro:assets'
+import Availability from '../../components/Availability.astro'
+import Star from '../../components/Star.astro'
+import MainLayout from '../../layouts/MainLayout.astro'
+
+export const getStaticPaths = (async () => {
+  const { data, error } = await actions.getPlaces()
+
+  if (error) {
+    throw new Error('Failed to get places')
+  }
+
+  return data.map((place) => ({
+    params: { id: place.id.toString() },
+    props: { place },
+  }))
+}) satisfies GetStaticPaths
+
+const { place } = Astro.props
+const { id, title, image, avg_rating, description } = place
+---
+
+<MainLayout title={title}>
+  <div class='grid grid-cols-2 gap-2'>
+    <div class='bg-white/80 p-5 rounded-xl'>
+      <h1 class='text-3xl font-extrabold'>#{id} {title}</h1>
+      <p>{description}</p>
+      <div class='flex flex-1'>
+        {Array.from({ length: Math.round(+avg_rating) }, (_) => <Star />)}
+      </div>
+
+      <!-- Server Island -->
+      <!-- <p class='bg-blue-300 mt-5 text-center rounded-xl p-2'>Disponibles</p>
+      <p class='bg-red-300 mt-5 text-center rounded-xl p-2'>No disponibles</p> -->
+      <Availability server:defer placeId={id.toString()}>
+        <p
+          slot='fallback'
+          class='bg-gray-300 mt-5 text-center rounded-xl p-2 animate-pulse'
+        >
+          Espere
+        </p>
+      </Availability>
+    </div>
+    <div class=''>
+      <Image
+        class='rounded-xl'
+        src={`/assets/images/${image}`}
+        alt={title}
+        width={400}
+        height={400}
+      />
+    </div>
+  </div>
+</MainLayout>
